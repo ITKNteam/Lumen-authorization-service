@@ -11,6 +11,11 @@
 |
 */
 
-$router->get('/', function () use ($router) {
-    return $router->app->version();
+$router->group(['prefix' => ''], function () use ($router) {
+    $controller = "AuthController";
+    $router->get('/', "$controller@getUser");
+    $router->post('/getToken', "$controller@getToken");
+    $router->post('/validateToken', "$controller@validateToken");
+    $router->post('/refreshToken', "$controller@refreshToken");
+    $router->post('/logout', "$controller@logout");
 });
