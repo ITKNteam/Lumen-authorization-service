@@ -91,11 +91,11 @@ class AuthServiceProvider extends ServiceProvider {
 
         } catch (\Error $e) {
             //$this->logger->error('getToken', ['error'=>$e->getMessage(), 'trace'=>$e->getTrace() ]);
-            // return  ['res'=>0, 'message'=>['error'=> $e->getMessage()], 'data'=>['trace'=>$e->getTrace()]];
+             return  ['res'=>0, 'message'=>['error'=> $e->getMessage()], 'data'=>['trace'=>$e->getTrace()]];
         } catch (\Throwable $t) {
 
             // $this->logger->error('getToken', ['Throwable error'=>$t->getMessage(), 'trace'=>$t->getTrace() ]);
-            //return  ['res'=>0, 'message'=>$t->getMessage(), 'data'=>[]];
+            return  ['res'=>0, 'message'=>$t->getMessage(), 'data'=>[]];
         }
 
         return [

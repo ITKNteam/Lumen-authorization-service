@@ -29,9 +29,7 @@ class AuthController extends Controller {
      * @return string
      */
     public function getToken(Request $request): string {
-        if (!$request->has('id')) {
-            return 'Missing parameter id';
-        }
+        $this->requestHas($request, 'id');
 
         return json_encode($this->authService->getToken($request->get('id')));
     }
@@ -41,9 +39,7 @@ class AuthController extends Controller {
      * @return false|string
      */
     public function validateToken(Request $request) {
-        if (!$request->has('token')) {
-            return 'Missing parameter id';
-        }
+        $this->requestHas($request, 'token');
 
         return json_encode($this->authService->authentication($request->get('token')));
     }
@@ -53,9 +49,7 @@ class AuthController extends Controller {
      * @return false|string
      */
     public function refreshToken(Request $request) {
-        if (!$request->has('token')) {
-            return 'Missing parameter token';
-        }
+        $this->requestHas($request, 'token');
 
         return json_encode($this->authService->refreshToken($request->get('token')));
     }
@@ -65,9 +59,7 @@ class AuthController extends Controller {
      * @return false|string
      */
     public function logout(Request $request) {
-        if (!$request->has('token')) {
-            return 'Missing parameter token';
-        }
+        $this->requestHas($request, 'token');
 
         return json_encode($this->authService->logout($request->get('token')));
     }
