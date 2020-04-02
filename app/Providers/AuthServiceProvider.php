@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Lumen\Application;
 use Redis;
+//use Illuminate\Support\Facades\Redis;
 use App\Configuration;
 use Exception;
 use Firebase\JWT\JWT;
@@ -29,7 +30,7 @@ class AuthServiceProvider extends ServiceProvider {
     protected $app;
 
     function __construct(Application $app) {
-        $this->app = $app;
+        parent::__construct($app);
 
         $this->config = new Configuration();
         $this->redis = new Redis();
@@ -152,7 +153,7 @@ class AuthServiceProvider extends ServiceProvider {
             $cache = $this->getCache();
 
             try {
-                $cache->set(self::TOKEN_USER_KEY . $accessToken, '');
+                $cache->del(self::TOKEN_USER_KEY . $accessToken);
             } catch (\RedisException $e) {
                 return [
                     'res' => 0,
