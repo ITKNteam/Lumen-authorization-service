@@ -4,11 +4,10 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Laravel\Lumen\Application;
-use Redis;
-//use Illuminate\Support\Facades\Redis;
-use App\Configuration;
+use Illuminate\Support\Facades\Redis;
 use Exception;
 use Firebase\JWT\JWT;
+use App\Models\ResultDto;
 
 class AuthServiceProvider extends ServiceProvider {
 
@@ -23,7 +22,6 @@ class AuthServiceProvider extends ServiceProvider {
     /**
      * @var array;
      */
-    private $config;
 
     private $redis;
 
@@ -31,15 +29,7 @@ class AuthServiceProvider extends ServiceProvider {
 
     function __construct(Application $app) {
         parent::__construct($app);
-
-        $this->config = new Configuration();
-        $this->redis = new Redis();
-        $config = $this->config->getRedis();
-        $this->redis->connect($config['host'], $config['port']);
-    }
-
-    public function test() {
-        return 'test';
+        $this->redis = Redis::connection();
     }
 
     /**
@@ -57,7 +47,7 @@ class AuthServiceProvider extends ServiceProvider {
      *
      * @return string
      */
-    private function generateRandomStr($length) {
+    private function generateRandomStr($length): string {
         $characters
             = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $charactersLength = strlen($characters);
@@ -68,7 +58,7 @@ class AuthServiceProvider extends ServiceProvider {
         return $randomString;
     }
 
-    public function getToken(int $userId): array {
+    public function getToken(int $userId): ResultDto {
         $accesToken = $this->generateSHA256();
         $refreshToken = $this->generateSHA256();
         $accesTokenExp = time() + (self::TOKEN_EXPARATION_IN_DAYS * 24 * 60
@@ -92,20 +82,16 @@ class AuthServiceProvider extends ServiceProvider {
 
         } catch (\Error $e) {
             //$this->logger->error('getToken', ['error'=>$e->getMessage(), 'trace'=>$e->getTrace() ]);
-             return  ['res'=>0, 'message'=>['error'=> $e->getMessage()], 'data'=>['trace'=>$e->getTrace()]];
+            return new ResultDto(0, $e->getMessage(), ['trace' => $e->getTrace()]);
         } catch (\Throwable $t) {
 
             // $this->logger->error('getToken', ['Throwable error'=>$t->getMessage(), 'trace'=>$t->getTrace() ]);
-            return  ['res'=>0, 'message'=>$t->getMessage(), 'data'=>[]];
+            return new ResultDto(0, $t->getMessage());
         }
 
-        return [
-            'res' => 1,
-            'message' => 'OK',
-            'data' => [
-                'token' => $jwt
-            ]
-        ];
+        return new ResultDto(1, 'OK', [
+            'token' => $jwt
+        ]);
     }
 
     private function getCache() {
@@ -115,38 +101,28 @@ class AuthServiceProvider extends ServiceProvider {
     /**
      * @param int $userId
      *
-     * @return array
+     * @return ResultDto
      */
-    private function getTokenByUserId(int $userId): array {
-        $ret = [
-            'res' => 0,
-            'message' => 'Token not found',
-            'data' => []
-        ];
+    private function getTokenByUserId(int $userId): ResultDto {
         $UserTokenKey = self::USER_TOKEN_KEY . $userId;
         $cache = $this->getCache();
         $token = $cache->get($UserTokenKey);
 
-        if ($token !== null) {
-
-            $ret = [
-                'res' => 1,
-                'message' => 'Token ok',
-                'data' => ['token' => $token]
-            ];
-        }
-
-        return $ret;
+        return empty($token)
+            ? new ResultDto(0, 'Not found')
+            : new ResultDto(1, 'Token ok', [
+                'token' => $token
+            ]);
     }
 
 
     /**
      * @param $token
      *
-     * @return array
+     * @return ResultDto
      */
-    public function logout($token) {
-        $retJwt = $this->validateJwt($token);
+    public function logout($token): ResultDto {
+        $retJwt = $this->validateJwt($token)->getAnswer();
         if ($retJwt['res'] === 1) {
             $accessToken = $retJwt['data']['access'] ?? '';
 
@@ -154,135 +130,99 @@ class AuthServiceProvider extends ServiceProvider {
 
             try {
                 $cache->del(self::TOKEN_USER_KEY . $accessToken);
+                return new ResultDto(1, 'Success');
             } catch (\RedisException $e) {
-                return [
-                    'res' => 0,
-                    'message' => 'Logout',
-                    'data' => ['error' => $e->getMessage()]
-                ];
+                return new ResultDto(0, 'Logout', ['error' => $e->getMessage()]);
             }
-            return [
-                'res' => 1,
-                'message' => 'Logout',
-                'data' => ['accessToken' => $accessToken]
-            ];
+
+            return new ResultDto(1, 'Logout', [
+                'accessToken' => $accessToken
+            ]);
+        } else {
+            return new ResultDto($retJwt['res'], $retJwt['message'], $retJwt['data']);
         }
-        return $retJwt;
     }
 
     /**
      * @param string $jwt
      *
-     * @return array
+     * @return ResultDto
      */
-    private function validateJwt(string $jwt): array {
+    private function validateJwt(string $jwt): ResultDto {
         try {
             $decoded = JWT::decode($jwt, self::JWT_KEY, ['HS256']);
-            $ret = [
-                'res' => 1,
-                'message' => 'JWT OK',
-                'data' => (array)$decoded
-            ];
+            return new ResultDto(1, 'JWT OK', (array)$decoded);
         } catch (Exception $e) {
-            $ret = [
-                'res' => 0,
-                'message' => 'JWT: ' . $e->getMessage(),
-                'data' => ['status' => 0]
-            ];
+            return new ResultDto(0, 'JWT: ' . $e->getMessage(), ['status' => 0]);
         }
-
-        return $ret;
     }
 
     /**
      *
      * @param string $token
      *
-     * @return array
+     * @return ResultDto
      */
-    public function authentication(string $token): array {
-        $retJwt = $this->validateJwt($token);
+    public function authentication(string $token): ResultDto {
+        $retJwt = $this->validateJwt($token)->getAnswer();
         if ($retJwt['res'] === 1) {
             $accessToken = $retJwt['data']['access'] ?? '';
             $accesTokenExp = $retJwt['data']['exp'] ?? 0;
             if ($accesTokenExp >= time()) {
-                $retToken = $this->getUserIdByToken($accessToken);
+                $retToken = $this->getUserIdByToken($accessToken)->getAnswer();
                 if ($retToken === 1) {
-                    return [
-                        'res' => 1,
-                        'message' => 'User ok',
-                        'data' => [
-                            'status' => 1,
-                            'user_id' => $retToken['data']['user_id']
-                        ]
-                    ];
+                    return new ResultDto(1, 'User ok', [
+                        'status' => 1,
+                        'user_id' => $retToken['data']['user_id']
+                    ]);
                 } else {
-                    return $retToken;
+                    return new ResultDto($retToken['res'], $retToken['message'], $retToken['data']);
                 }
             } else {
-                return [
-                    'res' => 0,
-                    'message' => 'Token expired, refresh!',
-                    'data' => ['status' => 2]
-                ];
+                return new ResultDto(0, 'Token expired, refresh!', ['status' => 2]);
             }
-
         }
-        return $retJwt;
+        return new ResultDto($retJwt['res'], $retJwt['message'], $retJwt['data']);
     }
 
     /**
      * @param string $token
      *
-     * @return array
+     * @return ResultDto
      */
-    private function getUserIdByToken(string $token): array {
-        $ret = [
-            'res' => 0,
-            'message' => 'User not found',
-            'data' => ['status' => 0]
-        ];
-
-
+    private function getUserIdByToken(string $token): ResultDto {
         $tokenUserKey = self::TOKEN_USER_KEY . $token;
         $cache = $this->getCache();
         $userId = $cache->get($tokenUserKey);
 
-        if (!empty($userId)) {
-            $ret = [
-                'res' => 1,
-                'message' => 'User id ok',
-                'data' => ['user_id' => $userId]
-            ];
-        }
-        return $ret;
+        return empty($userId)
+            ? new ResultDto(0, 'User not found', ['status' => 0])
+            : new ResultDto(1, 'User id ok', ['user_id' => $userId]);
     }
 
-    public function refreshToken(string $token): array {
-        $retJwt = $this->validateJwt($token);
+    /**
+     * @param string $token
+     * @return ResultDto
+     */
+    public function refreshToken(string $token): ResultDto {
+        $retJwt = $this->validateJwt($token)->getAnswer();
         if ($retJwt['res'] === 1) {
             $accessToken = $retJwt['data']['access'] ?? '';
-            $retToken = $this->getUserIdByToken($accessToken);
+            $retToken = $this->getUserIdByToken($accessToken)->getAnswer();
             if ($retToken['res'] === 1) {
-                $resNewToken = $this->getToken($retToken['data']['user_id']);
+                $resNewToken = $this->getToken($retToken['data']['user_id'])->getAnswer();
                 if ($resNewToken['res'] == 1) {
                     $newToken = $resNewToken['data']['token'];
                     $cache = $this->getCache();
-                    $cache->delete(self::TOKEN_USER_KEY . $accessToken);
-                    return [
-                        'res' => 1,
-                        'message' => 'User ok',
-                        'data' => [
-                            'token' => $newToken
-                        ]
-                    ];
+                    $cache->del(self::TOKEN_USER_KEY . $accessToken);
+                    return new ResultDto(1, 'User ok', ['token' => $newToken]);
                 } else {
-                    return $resNewToken;
+                    return new ResultDto($resNewToken['res'], $resNewToken['message'], $resNewToken['data']);
                 }
             } else {
-                return $retToken;
+                return new ResultDto($retToken['res'], $retToken['message'], $retToken['data']);
             }
         }
-        return $retJwt;
+        return new ResultDto($retJwt['res'], $retJwt['message'], $retJwt['data']);
     }
 }

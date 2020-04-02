@@ -6,61 +6,56 @@ use Illuminate\Http\Request;
 use App\Providers\AuthServiceProvider;
 
 class AuthController extends Controller {
-
-
+    /**
+     * @var AuthServiceProvider
+     */
     private $authService;
 
+    /**
+     * AuthController constructor.
+     * @param AuthServiceProvider $service
+     */
     function __construct(AuthServiceProvider $service) {
         $this->authService = $service;
     }
 
     /**
-     * Retrieve the user for the given ID.
-     *
      * @param Request $request
-     * @return Response
+     * @return array
      */
-    public function getUser(Request $request) {
-        return 'dadas';
-    }
-
-    /**
-     * @param Request $request
-     * @return string
-     */
-    public function getToken(Request $request): string {
+    public function getToken(Request $request): array {
         $this->requestHas($request, 'id');
 
-        return json_encode($this->authService->getToken($request->get('id')));
+        return $this->authService->getToken($request->get('id'))->getAnswer();
     }
 
     /**
      * @param Request $request
-     * @return false|string
+     * @return array
      */
-    public function validateToken(Request $request) {
+    public function validateToken(Request $request): array {
         $this->requestHas($request, 'token');
 
-        return json_encode($this->authService->authentication($request->get('token')));
+        return $this->authService->authentication($request->get('token'))->getAnswer();
     }
 
     /**
      * @param Request $request
-     * @return false|string
+     * @return array
      */
-    public function refreshToken(Request $request) {
+    public function refreshToken(Request $request): array {
         $this->requestHas($request, 'token');
 
-        return json_encode($this->authService->refreshToken($request->get('token')));
+        return $this->authService->refreshToken($request->get('token'))->getAnswer();
     }
 
     /**
      * @param Request $request
-     * @return false|string
+     * @return array
      */
-    public function logout(Request $request) {
+    public function logout(Request $request): array {
         $this->requestHas($request, 'token');
 
-        return json_encode($this->authService->logout($request->get('token')));
+        return $this->authService->logout($request->get('token'))->getAnswer();
     }
 }
