@@ -81,11 +81,10 @@ class AuthServiceProvider extends ServiceProvider {
             $cache->set($tokenUserKey, $userId, $accesTokenExp);
 
         } catch (\Error $e) {
-            //$this->logger->error('getToken', ['error'=>$e->getMessage(), 'trace'=>$e->getTrace() ]);
+            Sentry\captureException($e);
             return new ResultDto(0, $e->getMessage(), ['trace' => $e->getTrace()]);
         } catch (\Throwable $t) {
-
-            // $this->logger->error('getToken', ['Throwable error'=>$t->getMessage(), 'trace'=>$t->getTrace() ]);
+            Sentry\captureException($t);
             return new ResultDto(0, $t->getMessage());
         }
 
@@ -132,6 +131,7 @@ class AuthServiceProvider extends ServiceProvider {
                 $cache->del(self::TOKEN_USER_KEY . $accessToken);
                 return new ResultDto(1, 'Success');
             } catch (\RedisException $e) {
+                Sentry\captureException($e);
                 return new ResultDto(0, 'Logout', ['error' => $e->getMessage()]);
             }
 
@@ -153,6 +153,7 @@ class AuthServiceProvider extends ServiceProvider {
             $decoded = JWT::decode($jwt, self::JWT_KEY, ['HS256']);
             return new ResultDto(1, 'JWT OK', (array)$decoded);
         } catch (Exception $e) {
+            Sentry\captureException($e);
             return new ResultDto(0, 'JWT: ' . $e->getMessage(), ['status' => 0]);
         }
     }
