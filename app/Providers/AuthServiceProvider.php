@@ -129,7 +129,7 @@ class AuthServiceProvider extends ServiceProvider {
             $cache = $this->getCache();
 
             try {
-                $cache->dele(self::TOKEN_USER_KEY . $accessToken);
+                $cache->del(self::TOKEN_USER_KEY . $accessToken);
                 return new ResultDto(1, 'Success');
             } catch (\RedisException $e) {
                 Sentry\captureException($e);
