@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Redis;
 use Exception;
 use Firebase\JWT\JWT;
 use App\Models\ResultDto;
+use Sentry;
 
 class AuthServiceProvider extends ServiceProvider {
 
@@ -114,13 +115,13 @@ class AuthServiceProvider extends ServiceProvider {
             ]);
     }
 
-
     /**
      * @param $token
      *
      * @return ResultDto
      */
     public function logout($token): ResultDto {
+
         $retJwt = $this->validateJwt($token)->getAnswer();
         if ($retJwt['res'] === 1) {
             $accessToken = $retJwt['data']['access'] ?? '';
@@ -128,7 +129,7 @@ class AuthServiceProvider extends ServiceProvider {
             $cache = $this->getCache();
 
             try {
-                $cache->del(self::TOKEN_USER_KEY . $accessToken);
+                $cache->dele(self::TOKEN_USER_KEY . $accessToken);
                 return new ResultDto(1, 'Success');
             } catch (\RedisException $e) {
                 Sentry\captureException($e);

@@ -98,6 +98,7 @@ $app->configure('app');
 // $app->register(App\Providers\EventServiceProvider::class);
 //$app->register(App\Models\ResultDto::class);
 $app->register(Illuminate\Redis\RedisServiceProvider::class);
+$app->register('Sentry\Laravel\ServiceProvider');
 /*
 |--------------------------------------------------------------------------
 | Load The Application Routes
