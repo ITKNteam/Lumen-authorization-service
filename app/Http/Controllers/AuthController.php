@@ -19,6 +19,10 @@ class AuthController extends Controller {
         $this->authService = $service;
     }
 
+    public function welcome(): string {
+        return 'Welcome on auth service';
+    }
+
     /**
      * @param Request $request
      * @return array

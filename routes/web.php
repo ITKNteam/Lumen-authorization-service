@@ -13,7 +13,7 @@
 
 $router->group(['prefix' => ''], function () use ($router) {
     $controller = "AuthController";
-    $router->get('/', "$controller@getUser");
+    $router->get('/', "$controller@welcome");
     $router->post('/getToken', "$controller@getToken");
     $router->post('/validateToken', "$controller@validateToken");
     $router->post('/refreshToken', "$controller@refreshToken");
