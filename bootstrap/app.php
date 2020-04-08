@@ -2,8 +2,6 @@
 
 require_once __DIR__.'/../vendor/autoload.php';
 
-Sentry\init(['dsn' => 'https://c64abe21b64b48a5ae6cc37de6d664b5@sentry.io/2942595']);
-
 (new Laravel\Lumen\Bootstrap\LoadEnvironmentVariables(
     dirname(__DIR__)
 ))->bootstrap();
