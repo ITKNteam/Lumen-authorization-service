@@ -33,11 +33,6 @@ class Handler extends ExceptionHandler
      *
      * @throws \Exception
      */
-//    public function report(Throwable $exception)
-//    {
-//        parent::report($exception);
-//    }
-
     public function report(Throwable $exception)
     {
         if (app()->bound('sentry') && $this->shouldReport($exception)) {
